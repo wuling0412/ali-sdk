@@ -44,6 +44,16 @@ OSS, Open Storage Service. Equal to well know Amazon [S3](http://aws.amazon.com/
   - [.putMeta*(name, meta[, options])](#putmetaname-meta-options)
   - [.deleteMulti*(names[, options])](#deletemultinames-options)
   - [.signatureUrl(name)](#signatureurlname)
+- [Image Operations](#image-operations)
+  - [.getImg*(name, file[, options])](#getimgname-file-options)
+  - [.getImgStream*(name[, options])](#getimgstreamname-options)
+  - [.getImgExif*(name[, options])](#getimgexifname-options)
+  - [.getImgInfo*(name[, options])](#getimginfoname-options)
+  - [.putImgStyle*(name, style[, options])](#putimgstylename-style-options)
+  - [.getImgStyle*(name[, options])](#getimgstylename-options)
+  - [.listImgStyle*([options])](#listimgstyle-options)
+  - [.deleteImgStyle*(name[, options])](#deleteimgstylename-options)
+  - [.signatureImgUrl(name)](#signatureimageurlname)
 - [Known Errors](#known-errors)
 
 ## Data Regions
@@ -1154,6 +1164,127 @@ example:
 var url = store.signatureUrl('ossdemo.txt');
 console.log(url);
 ```
+
+## Image Operations
+
+All operations function is [generator], except `signatureImgUrl`.
+
+generator function format: `functionName*(...)`.
+
+### .getImg*(name, file[, options])
+
+Get an image from the image channel.
+
+parameters:
+
+- name {String} image object name store on OSS with operation style
+- [file] {String|WriteStream} file path or WriteStream instance to store the image
+  If `file` is null or ignore this parameter, function will return info contains `content` property.
+- [options] {Object} optional parameters
+  - [timeout] {Number} the operation timeout
+  - [headers] {Object} extra headers, detail see [RFC 2616](http://www.w3.org/Protocols/rfc2616/rfc2616.html)
+    - 'If-Modified-Since' object modified after this time will return 200 and object meta,
+        otherwise return 304 not modified
+    - 'If-Unmodified-Since' object modified before this time will return 200 and object meta,
+        otherwise throw PreconditionFailedError
+    - 'If-Match' object etag equal this will return 200 and object meta,
+        otherwise throw PreconditionFailedError
+    - 'If-None-Match' object etag not equal this will return 200 and object meta,
+        otherwise return 304 not modified
+
+Success will return the info contains response.
+
+object:
+
+- [content] {Buffer} file content buffer if `file` parameter is null or ignore
+- res {Object} response info, including
+  - status {Number} response status
+  - headers {Object} response headers
+  - size {Number} response size
+  - rt {Number} request total use time (ms)
+
+If object not exists, will throw NoSuchKeyError.
+
+example:
+
+- Get an exists object and store it to the local file
+
+```js
+var imagepath = '/home/ossdemo/demo.jpg';
+yield store.getImg('ossdemo/demo.jpg@200w_200h', filepath);
+```
+
+_ Store image to a writestream
+
+```js
+yield store.getImg('ossdemo/demo.jpg@200w_200h', somestream);
+```
+
+- Get an image content buffer
+
+```js
+var result = yield store.getImg('ossdemo/demo.jpg@200w_200h');
+console.log(Buffer.isBuffer(result.content));
+```
+
+- Get a not exists object or a not image object
+
+```js
+var imagepath = '/home/ossdemo/demo.jpg';
+yield store.getImg('ossdemo/not-exists-demo.txt@200w_200h', filepath);
+// will throw NoSuchKeyError
+```
+
+### .getImgStream*(name[, options])
+
+Get an image read stream.
+
+parameters:
+
+- name {String} image object name store on OSS with operation style
+- [options] {Object} optional parameters
+  - [timeout] {Number} the operation timeout
+  - [headers] {Object} extra headers
+    - 'If-Modified-Since' object modified after this time will return 200 and object meta,
+        otherwise return 304 not modified
+    - 'If-Unmodified-Since' object modified before this time will return 200 and object meta,
+        otherwise throw PreconditionFailedError
+    - 'If-Match' object etag equal this will return 200 and object meta,
+        otherwise throw PreconditionFailedError
+    - 'If-None-Match' object etag not equal this will return 200 and object meta,
+        otherwise return 304 not modified
+
+Success will return the stream instance and response info.
+
+object:
+
+- stream {ReadStream} readable stream instance
+    if response status is not 200, stream will be `null`.
+- res {Object} response info, including
+  - status {Number} response status
+  - headers {Object} response headers
+  - size {Number} response size
+  - rt {Number} request total use time (ms)
+
+If object not exists, will throw NoSuchKeyError.
+
+example:
+
+- Get an exists image object stream
+
+```js
+var result = yield store.getImgStream('ossdemo/demo.jpg@200w_200h');
+result.stream.pipe(fs.createWriteStream('some demo.jpg'));
+```
+//TODO
+
+### .getImgExif*(name[, options])
+### .getImgInfo*(name[, options])
+### .putImgStyle*(name, style[, options])
+### .getImgStyle*(name[, options])
+### .listImgStyle*([options])
+### .deleteImgStyle*(name[, options])
+### .signatureImgUrl(name)
 
 ## Known Errors
 
